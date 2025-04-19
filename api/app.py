@@ -1,8 +1,11 @@
 from fastapi import FastAPI
 from pydantic import BaseModel
-from ml.model import predict
+from ml.train import predict
+import os
 
 app = FastAPI()
+
+DATABASE_URL = os.getenv("DATABASE_URL")
 
 class RideRequest(BaseModel):
     Number_of_Riders: int

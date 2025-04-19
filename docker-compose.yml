@@ -1,0 +1,98 @@
+version: '3.9'
+
+services:
+  fastapi_app:
+    build:
+      context: . # Корень проекта — чтобы был доступ к api/ и ml/
+      dockerfile: api/Dockerfile
+    container_name: fastapi_app
+    ports:
+      - '8000:8000'
+    depends_on:
+      - db
+    volumes:
+      - ./data:/app/data
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: postgres://postgres:postgres@db:5432/mydatabase
+
+  db:
+    image: postgres:14
+    container_name: postgres_db
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: mydatabase
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - '5432:5432'
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U postgres']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  airflow-webserver:
+    build:
+      context: .
+      dockerfile: airflow/Dockerfile
+    container_name: airflow_webserver
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - '8080:8080'
+    environment:
+      AIRFLOW__CORE__EXECUTOR: LocalExecutor
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://postgres:postgres@db:5432/mydatabase
+      AIRFLOW__CORE__LOAD_EXAMPLES: 'False'
+      AIRFLOW__WEBSERVER__WORKERS: 2
+      AIRFLOW__WEBSERVER__SECRET_KEY: 7fbdf58cbb620b845c5e153f420b2fe5
+    volumes:
+      - ./airflow/dags:/opt/airflow/dags
+      - ./data:/opt/data
+      - ./spark_jobs:/opt/spark
+    command: >
+      bash -c "
+      airflow db upgrade &&
+      airflow users create --username admin --password admin --firstname admin --lastname admin --role Admin --email admin@example.com &&
+      exec airflow webserver
+      "
+
+  airflow-scheduler:
+    build:
+      context: .
+      dockerfile: airflow/Dockerfile
+    container_name: airflow_scheduler
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      AIRFLOW__CORE__EXECUTOR: LocalExecutor
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://postgres:postgres@db:5432/mydatabase
+      AIRFLOW__CORE__LOAD_EXAMPLES: 'False'
+      AIRFLOW__WEBSERVER__SECRET_KEY: 7fbdf58cbb620b845c5e153f420b2fe5
+    volumes:
+      - ./airflow/dags:/opt/airflow/dags
+      - ./data:/opt/data
+      - ./spark_jobs:/opt/spark
+    command: airflow scheduler
+
+  spark:
+    image: bitnami/spark:latest
+    container_name: spark_app
+    environment:
+      - SPARK_MODE=master
+    ports:
+      - '7077:7077'
+      - '4040:4040'
+    volumes:
+      - ./spark_jobs:/opt/spark_jobs
+      - ./data:/opt/data
+    command: tail -f /dev/null
+
+volumes:
+  postgres_data:
