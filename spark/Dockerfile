@@ -1,5 +1,9 @@
 FROM bitnami/spark:latest
 
-COPY spark-job.py /opt/spark-job.py
+USER root
 
-CMD ["/opt/bitnami/spark/bin/spark-submit", "/opt/spark-job.py"]
+RUN pip install numpy
+RUN pip install pandas
+
+COPY . /opt/spark
+

@@ -54,7 +54,8 @@ services:
     volumes:
       - ./airflow/dags:/opt/airflow/dags
       - ./data:/opt/data
-      - ./spark_jobs:/opt/spark
+      - ./spark:/opt/spark
+      - /var/run/docker.sock:/var/run/docker.sock
     command: >
       bash -c "
       airflow db upgrade &&
@@ -78,11 +79,14 @@ services:
     volumes:
       - ./airflow/dags:/opt/airflow/dags
       - ./data:/opt/data
-      - ./spark_jobs:/opt/spark
+      - ./spark:/opt/spark
+      - /var/run/docker.sock:/var/run/docker.sock
     command: airflow scheduler
 
   spark:
-    image: bitnami/spark:latest
+    build:
+      context: ./spark
+      dockerfile: Dockerfile
     container_name: spark_app
     environment:
       - SPARK_MODE=master
@@ -90,7 +94,7 @@ services:
       - '7077:7077'
       - '4040:4040'
     volumes:
-      - ./spark_jobs:/opt/spark_jobs
+      - ./spark:/opt/spark
       - ./data:/opt/data
     command: tail -f /dev/null
 
