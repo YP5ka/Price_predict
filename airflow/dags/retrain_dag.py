@@ -28,4 +28,13 @@ with DAG(
 
     )
 
-    run_raw_to_bronze >> run_bronze_to_silver
+    train_model = BashOperator(
+        task_id='train_model',
+        bash_command="python /app/ml/train_model_mlflow.py /opt/data/silver",
+        env={
+            "MLFLOW_TRACKING_URI": "http://mlflow:5000",  # укажи нужный URI
+            "MLFLOW_EXPERIMENT_NAME": "retrain_experiment"
+        }
+    )
+
+    run_raw_to_bronze >> run_bronze_to_silver >> train_model

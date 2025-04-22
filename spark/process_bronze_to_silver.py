@@ -47,7 +47,7 @@ def main():
     pdf = pdf[[
         'Number_of_Riders', 'Number_of_Drivers', 'Number_of_Past_Rides',
         'Average_Ratings', 'Vehicle_Type', 'Expected_Ride_Duration',
-        'Time_of_Booking', 'Customer_Loyalty_Status', 'Location_Category'
+        'Time_of_Booking', 'Customer_Loyalty_Status', 'Location_Category', 'Historical_Cost_of_Ride'
     ]]
 
     # 6. One-hot кодируем категориальные
@@ -61,7 +61,7 @@ def main():
           pdf[column] = 0
 
     # 8. Упорядочиваем
-    pdf = pdf[expected_columns]
+    pdf = pdf[expected_columns + ['Historical_Cost_of_Ride']]
 
     # 9. Сохраняем как Spark DataFrame в Silver
     spark_df = spark.createDataFrame(pdf)

@@ -10,4 +10,5 @@ RUN apt-get update && \
 
 USER airflow
 COPY airflow/requirements.txt /requirements.txt
+
 RUN pip install --no-cache-dir -r /requirements.txt

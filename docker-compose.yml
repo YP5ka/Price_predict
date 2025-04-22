@@ -43,6 +43,8 @@ services:
     depends_on:
       db:
         condition: service_healthy
+      mlflow:
+        condition: service_started
     ports:
       - '8080:8080'
     environment:
@@ -56,6 +58,7 @@ services:
       - ./data:/opt/data
       - ./spark:/opt/spark
       - /var/run/docker.sock:/var/run/docker.sock
+      - ./ml:/app/ml
     command: >
       bash -c "
       airflow db upgrade &&
@@ -81,7 +84,25 @@ services:
       - ./data:/opt/data
       - ./spark:/opt/spark
       - /var/run/docker.sock:/var/run/docker.sock
+      - ./ml:/app/ml
+      - ./mlflow:/mlflow
     command: airflow scheduler
+
+  mlflow:
+    image: ghcr.io/mlflow/mlflow:latest
+    ports:
+      - '5000:5000'
+    environment:
+      - MLFLOW_BACKEND_STORE_URI=sqlite:///mlflow.db
+      - MLFLOW_ARTIFACT_ROOT=/mlflow/artifacts
+    volumes:
+      - ./mlflow:/mlflow
+    command: >
+      mlflow server
+      --backend-store-uri sqlite:///mlflow.db
+      --default-artifact-root /mlflow/artifacts
+      --host 0.0.0.0
+      --port 5000
 
   spark:
     build:
@@ -96,7 +117,9 @@ services:
     volumes:
       - ./spark:/opt/spark
       - ./data:/opt/data
+      - ./mlflow/artifacts:/app/mlflow/artifacts
     command: tail -f /dev/null
 
 volumes:
   postgres_data:
+  mlflow_data:
