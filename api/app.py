@@ -1,12 +1,13 @@
 from fastapi import FastAPI
 from pydantic import BaseModel
 from ml.train import predict
+import numpy
 import os
 
 app = FastAPI()
 
 DATABASE_URL = os.getenv("DATABASE_URL")
-
+print("NumPy version:", numpy.__version__)
 class RideRequest(BaseModel):
     Number_of_Riders: int
     Number_of_Drivers: int
@@ -22,3 +23,4 @@ class RideRequest(BaseModel):
 def predict_ride(data: RideRequest):
     prediction = predict(data.dict())
     return {"predicted_ride_cost": prediction}
+
